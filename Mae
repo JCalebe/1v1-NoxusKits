@@ -1,0 +1,148 @@
+package umveum.prinsipal;
+
+import java.util.ArrayList;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class Mae extends JavaPlugin implements Listener, CommandExecutor {
+	private Plugin plugin;
+	static ArrayList<String> pedidoDesafiado = new ArrayList<>();
+	static ArrayList<String> pedidoSender = new ArrayList<>();
+	static ArrayList<String> emGame = new ArrayList<>();
+	static ArrayList<String> perdedor = new ArrayList<>();
+	static ArrayList<String> vencedor = new ArrayList<>();
+
+	@Override
+	public void onEnable() {
+
+		registra();
+		super.onEnable();
+		plugin = this;
+	}
+
+	@Override
+	public void onDisable() {
+
+		super.onDisable();
+	}
+
+	public void registra() {
+		PluginManager manager = getServer().getPluginManager();
+		manager.registerEvents(this, this);
+		getCommand("setar").setExecutor(this);
+		getCommand("desafiar").setExecutor(this);
+		getCommand("recusar").setExecutor(this);
+	}
+
+	@SuppressWarnings({ "deprecation", "unused" })
+	@Override
+	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+		Player p = (Player) sender;
+		Player t = (Player) sender;
+		Player target = p.getServer().getPlayer(args[0]);
+		t = target;
+		if (!(sender instanceof Player)) {
+			sender.sendMessage("§a§l Voce nao é um player!");
+			return true;
+		}
+		if (label.equalsIgnoreCase("setar")) {
+			if (!p.hasPermission("bilada.set")) {
+				p.sendMessage("§a§l Voce nao tem permissao!");
+				return true;
+			}
+			if (args.length != 1) {
+				p.sendMessage("§c§l Erro de digito! tente /setar ( pos1 / pos2 )");
+				return true;
+			} else if (args[0].equalsIgnoreCase("pos1")) {
+				plugin.getConfig().set("pos1.x", Double.valueOf(p.getLocation().getX()));
+				plugin.getConfig().set("pos1.y", Double.valueOf(p.getLocation().getY()));
+				plugin.getConfig().set("pos1.z", Double.valueOf(p.getLocation().getZ()));
+				plugin.getConfig().set("pos1.pitch", Float.valueOf(p.getLocation().getPitch()));
+				plugin.getConfig().set("pos1.yaw", Float.valueOf(p.getLocation().getYaw()));
+				plugin.getConfig().set("pos1.world", p.getLocation().getWorld().getName());
+				plugin.saveConfig();
+				p.sendMessage("§c§l Pos1 setada! ");
+				p.getWorld().setSpawnLocation(p.getLocation().getBlockX(), p.getLocation().getBlockY(),
+						p.getLocation().getBlockZ());
+			}
+			if (args[0].equalsIgnoreCase("pos2")) {
+				plugin.getConfig().set("pos2.x", Double.valueOf(p.getLocation().getX()));
+				plugin.getConfig().set("pos2.y", Double.valueOf(p.getLocation().getY()));
+				plugin.getConfig().set("pos2.z", Double.valueOf(p.getLocation().getZ()));
+				plugin.getConfig().set("pos2.pitch", Float.valueOf(p.getLocation().getPitch()));
+				plugin.getConfig().set("pos2.yaw", Float.valueOf(p.getLocation().getYaw()));
+				plugin.getConfig().set("pos2.world", p.getLocation().getWorld().getName());
+				plugin.saveConfig();
+				p.sendMessage("§c§l Pos2 setada! ");
+				p.getWorld().setSpawnLocation(p.getLocation().getBlockX(), p.getLocation().getBlockY(),
+						p.getLocation().getBlockZ());
+			}
+		}
+		if (label.equalsIgnoreCase("desafiar")) {
+			if (args.length != 1) {
+				p.sendMessage("§c§l Erro de digito, tente /desafiar ( player )");
+				return true;
+			}
+			if (emGame.contains(p.getName())) {
+				p.sendMessage("§c§l Voce ja esta em batalha!");
+				return true;
+			}
+			if (perdedor.contains(p.getName())) {
+				p.sendMessage("§c§l Voce perdeu uma batalha a pouco tempo, espere 5 segundos para desafiar novamente!");
+				return true;
+			}
+			if (vencedor.contains(p.getName())) {
+				p.sendMessage("§a§l Voce ganhou uma batalha a pouco tempo, espere 5 segundos para desafiar novamente!");
+				return true;
+			}
+			if (t != null) {
+				if (pedidoDesafiado.contains(target.getName())) {
+					p.sendMessage("§c§l Voce ja desafiou este jogador!");
+					return true;
+				}
+				if (emGame.contains(target.getName()) && perdedor.contains(t.getName())
+						&& vencedor.contains(t.getName())) {
+					p.sendMessage("§c§l O Player §6" + t.getName() + " já esta em uma batalha!");
+					return true;
+				}
+				pedidoDesafiado.remove(target.getName());
+				pedidoSender.remove(p.getName());
+				pedidoDesafiado.add(target.getName());
+				pedidoSender.add(p.getName());
+
+				p.sendMessage("§a§l Pedido de batalha enviado para " + target.getName() + " enviado com sucesso!");
+				t.sendMessage("§a§l O jogador " + p.getName()
+						+ " lhe convidou para uma batalha, se deseja aceitar digite /aceitar ou se deseja recusar digite /recusar");
+
+				Bukkit.getScheduler().scheduleAsyncDelayedTask(plugin, new Runnable() {
+					public void run() {
+						p.sendMessage(
+								"§c§l O jogador " + target.getName() + " tem 5 segundos para aceitar ou recusar!");
+						target.sendMessage("§c§l Voce tem 5 segundos para aceitar ou recusar a batalha de "
+								+ p.getName() + " §7( /aceitar ou /recusar ) ");
+					}
+				}, 0 * 20L);
+				Bukkit.getScheduler().scheduleAsyncDelayedTask(plugin, new Runnable() {
+					public void run() {
+						pedidoDesafiado.remove(target.getName());
+						pedidoSender.remove(p.getName());
+						p.sendMessage("§c§l A Batalha foi cancelada devido a demora de decisões!");
+						target.sendMessage("§c§l A Batalha foi cancelada devido a demora de dezizoes!");
+					}
+				}, 5 * 20L);
+			}
+		}
+		if (label.equalsIgnoreCase("recusar")) {
+			
+		}
+		return false;
+	}
+}
